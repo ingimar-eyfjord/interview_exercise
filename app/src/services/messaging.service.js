@@ -2,7 +2,6 @@ import http from "./common.js";
 
 class MessagingService {
   async create(body) {
-    console.log("Posting message?");
     try {
       return await http.post(`/messages`, body);
     } catch (error) {
@@ -10,7 +9,6 @@ class MessagingService {
     }
   }
   async findAll() {
-    console.log("Finding messages");
     try {
       return await http.get(`/messages`);
     } catch (error) {
