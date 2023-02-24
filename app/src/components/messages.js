@@ -1,73 +1,80 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { setAllMessages, setNewMessage } from "../messagesSlice";
+import MessageBody from "./MessageBody";
+import InputField from "./InputField";
+import SubmitButton from "./SubmitButton";
 import messagingService from "../services/messaging.service";
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
-import { deepOrange, deepPurple } from '@mui/material/colors';
+import Stack from "@mui/material/Stack";
+import Avatar from "@mui/material/Avatar";
+import { deepPurple } from "@mui/material/colors";
 import { Typography } from "@mui/material";
 
 export default function Messages() {
+  const newMessage = useSelector((state) => state.messages.message);
+  const allMessages = useSelector((state) => state.messages.allMessages);
 
-    const [messages, setMessages] = React.useState([]);
-    const [message, setMessage] = React.useState("");
-    const [messageToDisplay, setMessageToDisplay] = React.useState([]);
+  const [messageToDisplay, setMessageToDisplay] = useState([]); // Redux wasn't happy about putting React elements into the Redux store, so I kept this useState
 
-    const RetrieveMessages = useCallback(
-        async () => {
-            messagingService.findAll()
-                .then(response => {
-                    console.log(response)
-                    if (response.data.length > 0) {
-                        setMessages(response.data);
-                    }
-                })
-                .catch(e => {
-                    console.log(e);
-                });
-        },
-        [],
-    )
+  const dispatch = useDispatch();
 
-    useEffect(() => {
-        RetrieveMessages()
-    }, [RetrieveMessages]);
-
-    useEffect(() => {
-        const messagesToDisplay = messages.map((message) => {
-            return (
-                <Stack direction='row' width="100%">
-                    <Avatar sx={{ bgcolor: deepPurple[500] }}>OP</Avatar>
-                    <Typography variant="p" component="p">
-                        {message.Message_content}
-                    </Typography>
-                </Stack>
-            )
-        });
-        setMessageToDisplay(messagesToDisplay)
-    }, [messages]);
-
-    const postMessage = () => {
-        const messageBody = {
-            Message_content: message
+  const RetrieveMessages = useCallback(async () => {
+    messagingService
+      .findAll()
+      .then((response) => {
+        if (response.data.length > 0) {
+          dispatch(setAllMessages(response.data));
         }
-        messagingService.create(messageBody)
-            .then(response => {
-                console.log(response)
-                RetrieveMessages()
-            })
-            .catch(e => {
-                console.log(e);
-            });
-    }
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+  }, [dispatch]);
 
-    return (
-        <Stack spacing={2} direction="column" width="20%" margin="auto">
-            <Stack spacing={2} direction="column" width="20%" margin="auto" height="80vh">
-                {messageToDisplay}
-            </Stack>
-            <TextField id="standard-basic" value={message} onChange={(e) => setMessage(e.target.value)} label="Write message" variant="standard" sx={{ marginTop: "auto" }} />
-            <Button onClick={postMessage} variant="contained">Contained</Button>
+  useEffect(() => {
+    RetrieveMessages();
+  }, [RetrieveMessages]);
+
+  useEffect(() => {
+    const messagesToDisplay = allMessages.map((message) => {
+      return (
+        <Stack key={message.id} direction="row" width="100%">
+          <Avatar sx={{ bgcolor: deepPurple[500] }}>OP</Avatar>
+          <Typography variant="p" component="p">
+            {message.Message_content}
+          </Typography>
         </Stack>
-    )
+      );
+    });
+    setMessageToDisplay(messagesToDisplay);
+  }, [allMessages]);
+
+  const postMessage = () => {
+    const messageBody = {
+      Message_content: newMessage,
+    };
+    messagingService
+      .create(messageBody)
+      .then(() => {
+        RetrieveMessages();
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+    dispatch(setNewMessage(""));
+  };
+
+  return (
+    <Stack
+      spacing={2}
+      direction="column"
+      width="30vw"
+      minWidth="240px"
+      margin="auto"
+    >
+      <MessageBody messageToDisplay={messageToDisplay} />
+      <InputField newMessage={newMessage} />
+      <SubmitButton handleClick={postMessage} submitButtonText={"Send"} />
+    </Stack>
+  );
 }
